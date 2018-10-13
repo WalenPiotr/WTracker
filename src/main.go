@@ -8,7 +8,6 @@ import (
 	"image/color"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -28,8 +27,8 @@ type Limits struct {
 }
 
 func main() {
-	s := flag.String("src", "/data/src/toro.mp4", "mp4 file path")
-	o := flag.String("out", "/data/out", "output dir")
+	s := flag.String("src", "data/src/toro.mp4", "mp4 file path")
+	o := flag.String("out", "data/out/toro.avi", "output file")
 	d := flag.String("data", "data/src/data.json", "json file with data")
 
 	flag.Parse()
@@ -49,13 +48,9 @@ func main() {
 		log.Fatalln(errors.Wrap(err, "while creating absolute path"))
 	}
 
-	os.Mkdir(out, 0777)
-	if err != nil {
-		log.Fatalln(errors.Wrap(err, "while creating out dir"))
-	}
-
 	video, err := gocv.VideoCaptureFile(src)
 	if err != nil {
+		log.Fatalln(errors.Wrap(err, "while opening video"))
 
 	}
 
@@ -82,16 +77,15 @@ func main() {
 
 	var rects []image.Rectangle
 
-	saveFile := "/data/out/output.avi"
 	var writer *gocv.VideoWriter
 
 	for i := 0; true; i++ {
 		ok := video.Read(&img)
 		if i == start {
-			writer, err = gocv.VideoWriterFile(saveFile, "MJPG", 25, img.Cols(), img.Rows(), true)
+			writer, err = gocv.VideoWriterFile(out, "MJPG", 25, img.Cols(), img.Rows(), true)
 			defer writer.Close()
 			if err != nil {
-				fmt.Printf("error opening video writer device: %v\n", saveFile)
+				fmt.Printf("error opening video writer device: %v\n", out)
 				return
 			}
 
