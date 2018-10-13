@@ -19,6 +19,7 @@ import (
 type Data struct {
 	Rectangle image.Rectangle
 	Limits    Limits
+	Style     Style
 }
 
 type Limits struct {
@@ -77,14 +78,23 @@ func main() {
 	rect := data.Rectangle
 	start := data.Limits.Start
 	end := data.Limits.End
-
-	log.Println(data.Limits)
+	style := data.Style
 
 	var rects []image.Rectangle
+
+	saveFile := "/data/out/output.avi"
+	var writer *gocv.VideoWriter
 
 	for i := 0; true; i++ {
 		ok := video.Read(&img)
 		if i == start {
+			writer, err = gocv.VideoWriterFile(saveFile, "MJPG", 25, img.Cols(), img.Rows(), true)
+			defer writer.Close()
+			if err != nil {
+				fmt.Printf("error opening video writer device: %v\n", saveFile)
+				return
+			}
+
 			init := tracker.Init(img, rect)
 			if !init {
 				log.Fatalln("while tracker init")
@@ -102,11 +112,12 @@ func main() {
 				rect, ok = tracker.Update(img)
 				if ok {
 					rects = append(rects, rect)
-					draw(&img, rects)
+					draw(&img, rects, style)
 
-					filename := fmt.Sprintf("output%d.png", i)
-					gocv.IMWrite(filepath.Join(out, filename), img)
+					// filename := fmt.Sprintf("output%d.png", i)
+					// gocv.IMWrite(filepath.Join(out, filename), img)
 
+					writer.Write(img)
 					log.Println(rect)
 				}
 			}
@@ -117,14 +128,48 @@ func main() {
 
 }
 
-func draw(img *gocv.Mat, rects []image.Rectangle) {
+type Style struct {
+	Point     Point
+	Line      Line
+	Rectangle Rectangle
+	Axis      Axis
+}
+
+type Point struct {
+	Color     color.RGBA
+	Radius    int
+	Thickness int
+}
+
+type Line struct {
+	Color     color.RGBA
+	Thickness int
+}
+
+type Rectangle struct {
+	Color     color.RGBA
+	Thickness int
+}
+
+type Axis struct {
+	Color     color.RGBA
+	Thickness int
+}
+
+func draw(img *gocv.Mat, rects []image.Rectangle, style Style) {
+
+	axisX := (rects[0].Max.X + rects[0].Min.X) / 2
+	axisY := (rects[0].Max.Y + rects[0].Min.Y) / 2
+	gocv.Line(img, image.Point{axisX, 0}, image.Point{axisX, img.Rows() - 1}, style.Axis.Color, style.Axis.Thickness)
+	gocv.Line(img, image.Point{0, axisY}, image.Point{img.Cols() - 1, axisY}, style.Axis.Color, style.Axis.Thickness)
+
 	rect := rects[len(rects)-1]
-	gocv.Rectangle(img, rect, color.RGBA{0, 0, 255, 0}, 2)
+	gocv.Rectangle(img, rect, style.Rectangle.Color, style.Rectangle.Thickness)
 
 	for _, r := range rects {
 		x := (r.Min.X + r.Max.X) / 2
 		y := (r.Min.Y + r.Max.Y) / 2
-		gocv.Circle(img, image.Point{X: x, Y: y}, 3, color.RGBA{255, 0, 0, 0}, -1)
+		gocv.Circle(img, image.Point{X: x, Y: y}, style.Point.Radius, style.Point.Color, style.Point.Thickness)
 	}
 
 	for i := range rects {
@@ -133,7 +178,7 @@ func draw(img *gocv.Mat, rects []image.Rectangle) {
 			y1 := (rects[i].Min.Y + rects[i].Max.Y) / 2
 			x2 := (rects[i-1].Min.X + rects[i-1].Max.X) / 2
 			y2 := (rects[i-1].Min.Y + rects[i-1].Max.Y) / 2
-			gocv.Line(img, image.Point{X: x1, Y: y1}, image.Point{X: x2, Y: y2}, color.RGBA{0, 255, 0, 0}, 1)
+			gocv.Line(img, image.Point{X: x1, Y: y1}, image.Point{X: x2, Y: y2}, style.Line.Color, style.Line.Thickness)
 		}
 	}
 }
