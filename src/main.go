@@ -8,7 +8,6 @@ import (
 	"image/color"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -17,10 +16,9 @@ import (
 )
 
 type Data struct {
-	DumpImages bool
-	Rectangle  image.Rectangle
-	Limits     Limits
-	Style      Style
+	Rectangle image.Rectangle
+	Limits    Limits
+	Style     Style
 }
 
 type Limits struct {
@@ -98,9 +96,6 @@ func main() {
 				log.Fatalln("while tracker init")
 				break
 			}
-			if data.DumpImages {
-				os.Mkdir(filepath.Join(filepath.Dir(out), "images"), 0777)
-			}
 
 		}
 
@@ -115,10 +110,6 @@ func main() {
 				if ok {
 					rects = append(rects, rect)
 					draw(&img, rects, style, fps)
-					if data.DumpImages {
-						filename := fmt.Sprintf("output%d.png", i)
-						gocv.IMWrite(filepath.Join(filepath.Dir(out), "images", filename), img)
-					}
 					writer.Write(img)
 					log.Println(rect)
 				}
