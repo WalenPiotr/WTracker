@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -16,9 +17,10 @@ import (
 )
 
 type Data struct {
-	Rectangle image.Rectangle
-	Limits    Limits
-	Style     Style
+	DumpImages bool
+	Rectangle  image.Rectangle
+	Limits     Limits
+	Style      Style
 }
 
 type Limits struct {
@@ -79,10 +81,12 @@ func main() {
 
 	var writer *gocv.VideoWriter
 
+	fps := video.Get(gocv.VideoCaptureFPS)
+
 	for i := 0; true; i++ {
 		ok := video.Read(&img)
 		if i == start {
-			writer, err = gocv.VideoWriterFile(out, "MJPG", 25, img.Cols(), img.Rows(), true)
+			writer, err = gocv.VideoWriterFile(out, "XVID", fps, img.Cols(), img.Rows(), true)
 			defer writer.Close()
 			if err != nil {
 				fmt.Printf("error opening video writer device: %v\n", out)
@@ -94,6 +98,10 @@ func main() {
 				log.Fatalln("while tracker init")
 				break
 			}
+			if data.DumpImages {
+				os.Mkdir(filepath.Join(filepath.Dir(out), "images"), 0777)
+			}
+
 		}
 
 		if !ok {
@@ -106,11 +114,11 @@ func main() {
 				rect, ok = tracker.Update(img)
 				if ok {
 					rects = append(rects, rect)
-					draw(&img, rects, style)
-
-					// filename := fmt.Sprintf("output%d.png", i)
-					// gocv.IMWrite(filepath.Join(out, filename), img)
-
+					draw(&img, rects, style, fps)
+					if data.DumpImages {
+						filename := fmt.Sprintf("output%d.png", i)
+						gocv.IMWrite(filepath.Join(filepath.Dir(out), "images", filename), img)
+					}
 					writer.Write(img)
 					log.Println(rect)
 				}
@@ -127,6 +135,7 @@ type Style struct {
 	Line      Line
 	Rectangle Rectangle
 	Axis      Axis
+	Text      Text
 }
 
 type Point struct {
@@ -150,7 +159,17 @@ type Axis struct {
 	Thickness int
 }
 
-func draw(img *gocv.Mat, rects []image.Rectangle, style Style) {
+type Text struct {
+	Origin          image.Point
+	Margin          image.Point
+	FontType        gocv.HersheyFont
+	FontScale       float64
+	FontThickness   int
+	BackgroundColor color.RGBA
+	TextColor       color.RGBA
+}
+
+func draw(img *gocv.Mat, rects []image.Rectangle, style Style, fps float64) {
 
 	axisX := (rects[0].Max.X + rects[0].Min.X) / 2
 	axisY := (rects[0].Max.Y + rects[0].Min.Y) / 2
@@ -158,7 +177,29 @@ func draw(img *gocv.Mat, rects []image.Rectangle, style Style) {
 	gocv.Line(img, image.Point{0, axisY}, image.Point{img.Cols() - 1, axisY}, style.Axis.Color, style.Axis.Thickness)
 
 	rect := rects[len(rects)-1]
+	rect0 := rects[0]
 	gocv.Rectangle(img, rect, style.Rectangle.Color, style.Rectangle.Thickness)
+
+	fx := 45.0 / float64(rects[0].Dx())
+	fy := 45.0 / float64(rects[0].Dy())
+
+	xc := float64((rect.Min.X+rect.Max.X)/2-(rect0.Min.X+rect0.Max.X)/2) * fx
+	yc := float64(-(rect.Min.Y+rect.Max.Y)/2+(rect0.Min.Y+rect0.Max.Y)/2) * fy
+
+	text := fmt.Sprintf("x=%5.1f y=%5.1f", xc, yc)
+	origin := style.Text.Origin
+	margin := style.Text.Margin
+	fontType := style.Text.FontType
+	fontScale := style.Text.FontScale
+	fontThickness := style.Text.FontThickness
+	textSize := gocv.GetTextSize(text, fontType, fontScale, fontThickness)
+
+	gocv.Rectangle(img, image.Rectangle{
+		image.Point{origin.X - margin.X, origin.Y + margin.Y},
+		image.Point{origin.X + margin.X + textSize.X, origin.Y - (margin.Y + textSize.Y)},
+	}, style.Text.BackgroundColor, -1)
+
+	gocv.PutText(img, text, origin, fontType, fontScale, style.Text.TextColor, fontThickness)
 
 	for _, r := range rects {
 		x := (r.Min.X + r.Max.X) / 2
