@@ -156,12 +156,12 @@ class RectSelect extends React.Component<any, RectSelectState> {
                         </SButton>
                         <label>x = </label>
                         <SInput
-                            value={this.state.rectangle.min.x}
+                            value={this.state.rectangle.max.x}
                             onChange={this.handleChange('max', 'x')}
                         />
                         <label>y = </label>
                         <SInput
-                            value={this.state.rectangle.min.y}
+                            value={this.state.rectangle.max.y}
                             onChange={this.handleChange('max', 'y')}
                         />
                     </SPointBox>
