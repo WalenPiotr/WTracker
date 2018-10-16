@@ -77,6 +77,7 @@ func frameHandler(w http.ResponseWriter, r *http.Request) {
 type Settings struct {
 	Rectangle image.Rectangle
 	Limits    Limits
+	Size      image.Point
 }
 
 type Limits struct {
@@ -98,8 +99,9 @@ func trackHandler(w http.ResponseWriter, r *http.Request) {
 
 	rect := settings.Rectangle
 	limits := settings.Limits
+	size := settings.Size
 
-	rects, err := track(path, rect, limits.Start, limits.End, limits.Jump)
+	rects, err := track(path, rect, limits.Start, limits.End, limits.Jump, size)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -190,7 +192,7 @@ func grabFrame(src string, size image.Point, index int) (frame gocv.Mat, err err
 	return
 }
 
-func track(src string, rect image.Rectangle, start, end, jump int) (frameToRects map[int]image.Rectangle, err error) {
+func track(src string, rect image.Rectangle, start, end, jump int, size image.Point) (frameToRects map[int]image.Rectangle, err error) {
 	video, err := gocv.VideoCaptureFile(src)
 	if err != nil {
 		err = errors.Wrap(err, "While opening video")
@@ -228,12 +230,14 @@ func track(src string, rect image.Rectangle, start, end, jump int) (frameToRects
 		}
 
 		if i == start {
+			gocv.Resize(img, &img, size, 0, 0, gocv.InterpolationNearestNeighbor)
 			ok = tracker.Init(img, rect)
 			if !ok {
 				err = errors.New("While tracker init")
 				return
 			}
 		} else {
+			gocv.Resize(img, &img, size, 0, 0, gocv.InterpolationNearestNeighbor)
 			rect, ok = tracker.Update(img)
 			if !ok {
 				err = errors.New("While tracker update")
