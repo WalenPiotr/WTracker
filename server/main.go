@@ -23,7 +23,7 @@ type Data struct {
 
 func main() {
 	http.HandleFunc("/upload", uploadHandler)
-	http.HandleFunc("/frame/", frameHandler)
+	http.HandleFunc("/frame/", cors(frameHandler))
 	http.HandleFunc("/track/", trackHandler)
 
 	http.ListenAndServe(":8080", nil)
@@ -34,7 +34,24 @@ type FrameSettings struct {
 	Size  image.Point
 }
 
+func cors(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		log.Printf("Should set headers")
+
+		if r.Method == "OPTIONS" {
+			log.Printf("Should return for OPTIONS")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func frameHandler(w http.ResponseWriter, r *http.Request) {
+
 	id := r.URL.Path[len("/frame/"):]
 
 	var settings FrameSettings
@@ -53,7 +70,6 @@ func frameHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
 	w.Header().Set("Content-Type", "image/jpeg")
 	jpeg.Encode(w, img, nil)
 }
@@ -70,6 +86,7 @@ type Limits struct {
 }
 
 func trackHandler(w http.ResponseWriter, r *http.Request) {
+
 	id := r.URL.Path[len("/track/"):]
 	path := filepath.Join("data", "tmp", id, "footage.mp4")
 
@@ -95,13 +112,13 @@ func trackHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(rectsJSON)
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
+
 	readLimit := int64(250e6)
 
 	id := ksuid.New().String()
@@ -142,13 +159,13 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(j)
 }
 
 func grabFrame(src string, size image.Point, index int) (frame gocv.Mat, err error) {
+
 	video, err := gocv.VideoCaptureFile(src)
 	if err != nil {
 		err = errors.Wrap(err, "While opening video")
@@ -168,6 +185,8 @@ func grabFrame(src string, size image.Point, index int) (frame gocv.Mat, err err
 	if !ok {
 		err = errors.Errorf("While reading frame i = %d", index)
 	}
+	gocv.Resize(frame, &frame, size, 0, 0, gocv.InterpolationNearestNeighbor)
+
 	return
 }
 
