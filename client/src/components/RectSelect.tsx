@@ -1,4 +1,3 @@
-// import * as Raven from 'raven-js';
 import * as React from 'react';
 import styled from '@styled-components';
 
@@ -13,16 +12,16 @@ interface Point {
 }
 
 const size = {
-    x: 1200,
-    y: 675,
+    x: 800,
+    y: 450,
 };
 const margin = 10;
 
-interface AppState {
+interface RectSelectState {
     url: string;
     rectangle: Rectangle;
 }
-class App extends React.Component<any, any> {
+class RectSelect extends React.Component<any, RectSelectState> {
     state = {
         url: '',
         rectangle: {
@@ -77,7 +76,7 @@ class App extends React.Component<any, any> {
 
             console.log();
 
-            this.setState((prevState: AppState) => ({
+            this.setState((prevState: RectSelectState) => ({
                 ...prevState,
                 rectangle: {
                     ...prevState.rectangle,
@@ -89,12 +88,12 @@ class App extends React.Component<any, any> {
 
     btnClick = () => {
         if (this.state.current === 'min') {
-            this.setState((prevState: AppState) => ({
+            this.setState((prevState: RectSelectState) => ({
                 ...prevState,
                 current: 'max',
             }));
         } else if (this.state.current === 'max') {
-            this.setState((prevState: AppState) => ({
+            this.setState((prevState: RectSelectState) => ({
                 ...prevState,
                 current: 'min',
             }));
@@ -108,33 +107,49 @@ class App extends React.Component<any, any> {
                     onClick={this.handleClick}
                     rectangle={this.state.rectangle}
                 />
-                <div>
-                    <button onClick={this.btnClick}>Click</button>
-                    <div>
+                <SControls>
+                    <SPointBox>
                         <SButton
                             onClick={this.btnClick}
                             highlight={this.state.current === 'min'}
                         >
-                            Select First Point
+                            1st Point
                         </SButton>
                         <div>x = {this.state.rectangle.min.x}</div>
                         <div>y = {this.state.rectangle.min.y}</div>
-                    </div>
-                    <div>
+                    </SPointBox>
+                    <SPointBox>
                         <SButton
                             onClick={this.btnClick}
                             highlight={this.state.current === 'max'}
                         >
-                            Select Second Point
+                            2nd Point
                         </SButton>
                         <div>x = {this.state.rectangle.max.x}</div>
                         <div>y = {this.state.rectangle.max.y}</div>
-                    </div>
-                </div>
+                    </SPointBox>
+                </SControls>
             </div>
         );
     }
 }
+
+const SPointBox = styled.div`
+    margin: 10px;
+`;
+
+const SControls = styled.div`
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    flex-direction: row;
+`;
+
+const SButton = styled.button`
+    background-color: ${({ highlight }) =>
+        highlight ? 'green' : 'transparent'};
+    margin-bottom: 5px;
+`;
 
 interface CanvasProps {
     src: string;
@@ -204,11 +219,6 @@ class Canvas extends React.Component<CanvasProps, any> {
     }
 }
 
-const SButton = styled.button`
-    background-color: ${({ highlight }) =>
-        highlight ? 'green' : 'transparent'};
-`;
-
 const SCanvas = styled.canvas`
     position: absolute;
     z-index: 2;
@@ -223,7 +233,7 @@ const SImg = styled.img`
     width: ${({ size }: SImgProps) => `${size.x}px`};
     height: ${({ size }: SImgProps) => `${size.y}px`};
     position: absolute;
-    zindex: 1;
+    z-index: 1;
     user-select: none;
 `;
 const SDiv = styled.div`
@@ -234,4 +244,4 @@ const SDiv = styled.div`
     user-select: none;
 `;
 
-export default App;
+export default RectSelect;
