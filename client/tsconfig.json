@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "sourceMap": true,
+        "module": "commonjs",
+        "target": "es5",
+        "lib": ["es6", "dom"],
+        "jsx": "react",
+        "baseUrl": ".",
+        "paths": {
+            "@typings/*": ["src/typings/*"],
+            "@styled-components": ["src/styled-components"],
+            "@View/*": ["src/View/*"]
+        },
+        // "downlevelIteration": true,
+        // "forceConsistentCasingInFileNames": true,
+        // "noImplicitReturns": true,
+        // "noImplicitThis": true,
+        // "noImplicitAny": true,
+        // "strictNullChecks": true,
+        // "suppressImplicitAnyIndexErrors": true,
+        // "noUnusedLocals": true
+    },
+    "include": ["./src/**/*"]
+}
