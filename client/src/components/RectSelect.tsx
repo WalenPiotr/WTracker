@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@styled-components';
+import { instanceOf } from 'prop-types';
 
 interface Rectangle {
     min: Point;
@@ -99,6 +100,26 @@ class RectSelect extends React.Component<any, RectSelectState> {
             }));
         }
     };
+
+    handleChange = (point: string, coordinate: string) => (
+        event: React.SyntheticEvent<HTMLInputElement>,
+    ) => {
+        console.log(this.state);
+        const target = event.target;
+        if (target instanceof HTMLInputElement) {
+            this.setState((prevState: RectSelectState) => ({
+                ...prevState,
+                rectangle: {
+                    ...prevState.rectangle,
+                    [point]: {
+                        ...prevState.rectangle[point],
+                        [coordinate]: target.value,
+                    },
+                },
+            }));
+        }
+    };
+
     render() {
         return (
             <div>
@@ -115,8 +136,16 @@ class RectSelect extends React.Component<any, RectSelectState> {
                         >
                             1st Point
                         </SButton>
-                        <div>x = {this.state.rectangle.min.x}</div>
-                        <div>y = {this.state.rectangle.min.y}</div>
+                        <label>x = </label>
+                        <SInput
+                            value={this.state.rectangle.min.x}
+                            onChange={this.handleChange('min', 'x')}
+                        />
+                        <label>y = </label>
+                        <SInput
+                            value={this.state.rectangle.min.y}
+                            onChange={this.handleChange('min', 'y')}
+                        />
                     </SPointBox>
                     <SPointBox>
                         <SButton
@@ -125,8 +154,16 @@ class RectSelect extends React.Component<any, RectSelectState> {
                         >
                             2nd Point
                         </SButton>
-                        <div>x = {this.state.rectangle.max.x}</div>
-                        <div>y = {this.state.rectangle.max.y}</div>
+                        <label>x = </label>
+                        <SInput
+                            value={this.state.rectangle.min.x}
+                            onChange={this.handleChange('max', 'x')}
+                        />
+                        <label>y = </label>
+                        <SInput
+                            value={this.state.rectangle.min.y}
+                            onChange={this.handleChange('max', 'y')}
+                        />
                     </SPointBox>
                 </SControls>
             </div>
@@ -144,6 +181,8 @@ const SControls = styled.div`
     width: 100%;
     flex-direction: row;
 `;
+
+const SInput = styled.input``;
 
 const SButton = styled.button`
     background-color: ${({ highlight }) =>
