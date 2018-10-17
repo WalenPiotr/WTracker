@@ -12,34 +12,68 @@ interface Point {
     y: number;
 }
 
-const size = {
+const canvasSize = {
     x: 800,
-    y: 450,
+    y: 500,
 };
-const margin = 10;
 
 interface RectSelectState {
     url: string;
-    rectangle: Rectangle;
+    tracked: Rectangle;
 }
+
 class RectSelect extends React.Component<any, RectSelectState> {
     state = {
         url: '',
-        rectangle: {
+        size: {
+            x: 1280,
+            y: 720,
+        },
+        tracked: {
             min: {
-                x: margin,
-                y: margin,
+                x: 0,
+                y: 0,
             },
             max: {
-                x: size.x - margin,
-                y: size.y - margin,
+                x: 1280,
+                y: 720,
             },
         },
-
         current: 'min',
     };
 
     async componentDidMount() {
+        const metaResponse = await fetch(
+            'http://127.0.0.1:8080/meta/1BeTQwRs6A5fwq1OWfmsMhXR5aV',
+            {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+            },
+        );
+
+        if (metaResponse.ok) {
+            const data = await metaResponse.json();
+            const size = {
+                x: data.Meta.Size.X,
+                y: data.Meta.Size.Y,
+            };
+
+            this.setState(prevState => ({
+                ...prevState,
+                size: size,
+                tracked: {
+                    min: {
+                        x: 0,
+                        y: 0,
+                    },
+                    max: size,
+                },
+            }));
+        }
+
         const response = await fetch(
             'http://127.0.0.1:8080/frame/1BeTQwRs6A5fwq1OWfmsMhXR5aV',
             {
@@ -50,10 +84,6 @@ class RectSelect extends React.Component<any, RectSelectState> {
                 },
                 body: JSON.stringify({
                     index: 0,
-                    size: {
-                        x: size.x,
-                        y: size.y,
-                    },
                 }),
             },
         );
@@ -71,16 +101,19 @@ class RectSelect extends React.Component<any, RectSelectState> {
             const y0 = event.target.getBoundingClientRect().top;
 
             const val = {
-                x: event.clientX - x0,
-                y: event.clientY - y0,
+                x: Math.round(
+                    ((event.clientX - x0) * this.state.size.x) / canvasSize.x,
+                ),
+                y: Math.round(
+                    ((event.clientY - y0) * this.state.size.y) / canvasSize.y,
+                ),
             };
-
-            console.log();
+            console.log(val);
 
             this.setState((prevState: RectSelectState) => ({
                 ...prevState,
-                rectangle: {
-                    ...prevState.rectangle,
+                tracked: {
+                    ...prevState.tracked,
                     [this.state.current]: val,
                 },
             }));
@@ -104,15 +137,14 @@ class RectSelect extends React.Component<any, RectSelectState> {
     handleChange = (point: string, coordinate: string) => (
         event: React.SyntheticEvent<HTMLInputElement>,
     ) => {
-        console.log(this.state);
         const target = event.target;
         if (target instanceof HTMLInputElement) {
             this.setState((prevState: RectSelectState) => ({
                 ...prevState,
-                rectangle: {
-                    ...prevState.rectangle,
+                tracked: {
+                    ...prevState.tracked,
                     [point]: {
-                        ...prevState.rectangle[point],
+                        ...prevState.tracked[point],
                         [coordinate]: target.value,
                     },
                 },
@@ -121,12 +153,15 @@ class RectSelect extends React.Component<any, RectSelectState> {
     };
 
     render() {
+        console.log(this.state);
         return (
             <div>
                 <Canvas
+                    size={canvasSize}
+                    originalSize={this.state.size}
                     src={this.state.url}
                     onClick={this.handleClick}
-                    rectangle={this.state.rectangle}
+                    tracked={this.state.tracked}
                 />
                 <SControls>
                     <SPointBox>
@@ -138,12 +173,12 @@ class RectSelect extends React.Component<any, RectSelectState> {
                         </SButton>
                         <label>x = </label>
                         <SInput
-                            value={this.state.rectangle.min.x}
+                            value={this.state.tracked.min.x}
                             onChange={this.handleChange('min', 'x')}
                         />
                         <label>y = </label>
                         <SInput
-                            value={this.state.rectangle.min.y}
+                            value={this.state.tracked.min.y}
                             onChange={this.handleChange('min', 'y')}
                         />
                     </SPointBox>
@@ -156,12 +191,12 @@ class RectSelect extends React.Component<any, RectSelectState> {
                         </SButton>
                         <label>x = </label>
                         <SInput
-                            value={this.state.rectangle.max.x}
+                            value={this.state.tracked.max.x}
                             onChange={this.handleChange('max', 'x')}
                         />
                         <label>y = </label>
                         <SInput
-                            value={this.state.rectangle.max.y}
+                            value={this.state.tracked.max.y}
                             onChange={this.handleChange('max', 'y')}
                         />
                     </SPointBox>
@@ -193,7 +228,9 @@ const SButton = styled.button`
 interface CanvasProps {
     src: string;
     onClick: (event: React.MouseEvent<HTMLCanvasElement>) => void;
-    rectangle: Rectangle;
+    size: Point;
+    originalSize: Point;
+    tracked: Rectangle;
 }
 
 class Canvas extends React.Component<CanvasProps, any> {
@@ -204,10 +241,12 @@ class Canvas extends React.Component<CanvasProps, any> {
         this.updateCanvas();
     }
 
-    drawRect(ctx: CanvasRenderingContext2D, rectangle: Rectangle) {
-        const { x, y } = rectangle.min;
-        const w = rectangle.max.x - x;
-        const h = rectangle.max.y - y;
+    drawRect(ctx: CanvasRenderingContext2D, tracked: Rectangle) {
+        const { originalSize, size } = this.props;
+        const x = (tracked.min.x / originalSize.x) * size.x;
+        const y = (tracked.min.y / originalSize.y) * size.y;
+        const w = ((tracked.max.x - tracked.min.x) / originalSize.x) * size.x;
+        const h = ((tracked.max.y - tracked.min.y) / originalSize.y) * size.y;
 
         ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
         ctx.fillRect(x, y, w, h);
@@ -240,19 +279,19 @@ class Canvas extends React.Component<CanvasProps, any> {
             const ctx = this.refs.canvas.getContext('2d');
             this.clearCanvas(ctx, this.refs.canvas);
             // await this.drawBackground(ctx, this.props.src);
-            this.drawRect(ctx, this.props.rectangle);
+            this.drawRect(ctx, this.props.tracked);
         }
     }
     render() {
         return (
-            <SDiv size={size}>
+            <SDiv size={this.props.size}>
                 <SCanvas
                     ref="canvas"
-                    width={size.x}
-                    height={size.y}
+                    width={this.props.size.x}
+                    height={this.props.size.y}
                     onClick={this.props.onClick}
                 />
-                <SImg src={this.props.src} size={size} />
+                <SImg src={this.props.src} size={this.props.size} />
             </SDiv>
         );
     }
