@@ -84,7 +84,7 @@ func getMeta(src string) (meta Meta, err error) {
 	count := int64(video.Get(gocv.VideoCaptureFrameCount))
 	size := image.Point{
 		X: int(video.Get(gocv.VideoCaptureFrameWidth)),
-		Y: int(video.Get(gocv.VideoCaptureFrameWidth)),
+		Y: int(video.Get(gocv.VideoCaptureFrameHeight)),
 	}
 	fps := video.Get(gocv.VideoCaptureFPS)
 
