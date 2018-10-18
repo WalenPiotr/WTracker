@@ -22,10 +22,9 @@ export const media = {
 const {
     default: styled,
     css,
-    injectGlobal,
     keyframes,
     ThemeProvider,
 } = styledComponents as styledComponents.ThemedStyledComponentsModule<ITheme>;
 
 export default styled;
-export { css, injectGlobal, keyframes, ThemeProvider };
+export { css, keyframes, ThemeProvider };
