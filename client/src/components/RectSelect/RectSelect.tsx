@@ -25,7 +25,7 @@ class RectSelect extends React.Component<any, RectSelectState> {
                 y: 720,
             },
         },
-        current: 'min',
+        current: '',
     };
 
     async componentDidMount() {
@@ -103,22 +103,20 @@ class RectSelect extends React.Component<any, RectSelectState> {
                     ...prevState.tracked,
                     [this.state.current]: val,
                 },
+                current: '',
             }));
         }
     };
 
-    btnClick = () => {
-        if (this.state.current === 'min') {
-            this.setState((prevState: RectSelectState) => ({
-                ...prevState,
-                current: 'max',
-            }));
-        } else if (this.state.current === 'max') {
-            this.setState((prevState: RectSelectState) => ({
-                ...prevState,
-                current: 'min',
-            }));
+    btnClick = (field: string) => () => {
+        if (this.state.current === field) {
+            field = '';
         }
+
+        this.setState((prevState: RectSelectState) => ({
+            ...prevState,
+            current: field,
+        }));
     };
 
     handleChange = (point: string, coordinate: string) => (
@@ -147,11 +145,12 @@ class RectSelect extends React.Component<any, RectSelectState> {
                     src={this.state.url}
                     onClick={this.handleClick}
                     tracked={this.state.tracked}
+                    current={this.state.current}
                 />
                 <SControls>
                     <SPointBox>
                         <SButton
-                            onClick={this.btnClick}
+                            onClick={this.btnClick('min')}
                             highlight={this.state.current === 'min'}
                         >
                             1st Point
@@ -173,7 +172,7 @@ class RectSelect extends React.Component<any, RectSelectState> {
                     </SPointBox>
                     <SPointBox>
                         <SButton
-                            onClick={this.btnClick}
+                            onClick={this.btnClick('max')}
                             highlight={this.state.current === 'max'}
                         >
                             2nd Point
@@ -219,7 +218,7 @@ const SLabel = styled.label`
 `;
 
 const SButton = styled.button`
-    background-color: ${({ highlight }) =>
+    background-color: ${({ highlight }: { highlight: boolean }) =>
         highlight ? 'green' : 'transparent'};
     margin-bottom: 5px;
 `;
