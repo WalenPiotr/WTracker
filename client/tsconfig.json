@@ -8,10 +8,9 @@
         "jsx": "react",
         "baseUrl": ".",
         "paths": {
-            "@typings/*": ["src/typings/*"],
             "@styled-components": ["src/styled-components"],
-            "@View/*": ["src/View/*"]
-        },
+            "@interfaces/*": ["src/interfaces/*"]
+        }
         // "downlevelIteration": true,
         // "forceConsistentCasingInFileNames": true,
         // "noImplicitReturns": true,
