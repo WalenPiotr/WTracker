@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"image"
 	"image/jpeg"
 	"io"
@@ -21,7 +22,11 @@ type Data struct {
 	Rectangle image.Rectangle
 }
 
+var dataDir = flag.String("data-dir", "data/tmp", "data directory")
+
 func main() {
+	flag.Parse()
+
 	http.HandleFunc("/upload", cors(uploadHandler))
 	http.HandleFunc("/frame/", cors(frameHandler))
 	http.HandleFunc("/track/", cors(trackHandler))
@@ -52,7 +57,7 @@ func cors(next http.HandlerFunc) http.HandlerFunc {
 
 func metaHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[len("/meta/"):]
-	path := filepath.Join("data", "tmp", id, "footage.mp4")
+	path := filepath.Join(*dataDir, id, "footage.mp4")
 
 	meta, err := getMeta(path)
 	rectsJSON, err := json.Marshal(map[string]interface{}{
@@ -105,7 +110,7 @@ func frameHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	path := filepath.Join("data", "tmp", id, "footage.mp4")
+	path := filepath.Join(*dataDir, id, "footage.mp4")
 	frame, err := grabFrame(path, settings.Index)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -132,7 +137,7 @@ type Limits struct {
 
 func trackHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[len("/track/"):]
-	path := filepath.Join("data", "tmp", id, "footage.mp4")
+	path := filepath.Join(*dataDir, id, "footage.mp4")
 
 	var settings Settings
 	err := json.NewDecoder(r.Body).Decode(&settings)
@@ -167,7 +172,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := ksuid.New().String()
 
-	dir := filepath.Join("data", "tmp", id)
+	dir := filepath.Join(*dataDir, id)
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
