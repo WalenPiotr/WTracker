@@ -32,7 +32,7 @@ func main() {
 	http.HandleFunc("/track/", cors(trackHandler))
 	http.HandleFunc("/meta/", cors(metaHandler))
 
-	http.ListenAndServe(":8080", nil)
+	log.Println(http.ListenAndServe(":8080", nil))
 }
 
 type FrameSettings struct {
