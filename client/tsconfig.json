@@ -9,16 +9,17 @@
         "baseUrl": ".",
         "paths": {
             "@styled-components": ["src/styled-components"],
-            "@interfaces/*": ["src/interfaces/*"]
-        }
-        // "downlevelIteration": true,
-        // "forceConsistentCasingInFileNames": true,
-        // "noImplicitReturns": true,
-        // "noImplicitThis": true,
-        // "noImplicitAny": true,
-        // "strictNullChecks": true,
-        // "suppressImplicitAnyIndexErrors": true,
-        // "noUnusedLocals": true
+            "@interfaces/*": ["src/interfaces/*"],
+            "@components/*": ["src/components/*"]
+        },
+        "downlevelIteration": true,
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "noUnusedLocals": true
     },
     "include": ["./src/**/*"]
 }

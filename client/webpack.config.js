@@ -19,6 +19,7 @@ module.exports = {
                 'src/styled-components',
             ),
             '@interfaces': path.resolve(__dirname, 'src/interfaces/'),
+            '@components': path.resolve(__dirname, 'src/components/'),
         },
     },
     module: {
