@@ -148,26 +148,65 @@ class VideoCut extends React.Component<VideoCutProps, VideoCutState> {
         }
     };
 
+    handleChange = (type: Timestamp) => async (event: React.ChangeEvent) => {
+        event.persist();
+        const target = event.target;
+        if (target instanceof HTMLInputElement) {
+            await this.setState((prevState: VideoCutState) => ({
+                ...prevState,
+                indices: {
+                    ...prevState.indices,
+                    [type]: target.value,
+                },
+            }));
+
+            const v = parseInt(target.value);
+            if (!isNaN(v)) {
+                await this.updateFrames(type, v);
+            }
+        }
+    };
+
     render() {
         return (
             <STimelineBox>
-                <div>
-                    <SBoundaryImg
-                        src={`data:image/png;base64,${
-                            this.state.images[Timestamp.Start]
-                        }`}
-                    />
-                    <SCurrentImg
-                        src={`data:image/png;base64,${
-                            this.state.images[Timestamp.Current]
-                        }`}
-                    />
-                    <SBoundaryImg
-                        src={`data:image/png;base64,${
-                            this.state.images[Timestamp.End]
-                        }`}
-                    />
-                </div>
+                <SViewBox>
+                    <SImageBox>
+                        <SImg
+                            src={`data:image/png;base64,${
+                                this.state.images[Timestamp.Start]
+                            }`}
+                        />
+                        <SInput
+                            value={this.state.indices.start}
+                            onChange={this.handleChange(Timestamp.Start)}
+                        />
+                    </SImageBox>
+
+                    <SImageBox>
+                        <SImg
+                            src={`data:image/png;base64,${
+                                this.state.images[Timestamp.Current]
+                            }`}
+                        />
+                        <SInput
+                            value={this.state.indices.current}
+                            onChange={this.handleChange(Timestamp.Current)}
+                        />
+                    </SImageBox>
+
+                    <SImageBox>
+                        <SImg
+                            src={`data:image/png;base64,${
+                                this.state.images[Timestamp.End]
+                            }`}
+                        />
+                        <SInput
+                            value={this.state.indices.end}
+                            onChange={this.handleChange(Timestamp.End)}
+                        />
+                    </SImageBox>
+                </SViewBox>
 
                 <TimelineCanvas
                     start={this.state.indices.start / (this.state.count - 1)}
@@ -183,6 +222,26 @@ class VideoCut extends React.Component<VideoCutProps, VideoCutState> {
     }
 }
 
+const SInput = styled.input`
+    height: 40px;
+    font-size: 16px;
+    width: calc(100% - 10px);
+    padding-left: 10px;
+    border: 1px solid grey;
+    background-color: transparent;
+    color: white;
+`;
+
+const SViewBox = styled.div`
+    display: flex;
+`;
+
+const SImageBox = styled.div`
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+`;
+
 const STimelineBox = styled.div`
     display: flex;
     justify-content: center;
@@ -190,14 +249,10 @@ const STimelineBox = styled.div`
     flex-direction: column;
 `;
 
-const SCurrentImg = styled.img`
+const SImg = styled.img`
     width: ${imgSize.x}px;
     height: ${imgSize.y}px;
-`;
-
-const SBoundaryImg = styled.img`
-    width: ${imgSize.x / 2}px;
-    height: ${imgSize.y / 2}px;
+    margin-bottom: 10px;
 `;
 
 export default VideoCut;
@@ -228,35 +283,32 @@ class TimelineCanvas extends React.Component<TimelineCanvasProps, any> {
         }
     };
 
-    handleBtnClick = (type: Timestamp) => () => {
-        this.props.setTimestamp(type);
-    };
-
     drawBackground(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(200, 0, 0)';
+        ctx.fillStyle = 'rgb(100, 100, 100)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.stroke();
         ctx.closePath();
     }
 
     drawSegment(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-        const x = canvas.width * this.props.start;
-        const w = canvas.width * (this.props.end - this.props.start);
+        const x = Math.round(canvas.width * this.props.start);
+        const w = Math.round(
+            canvas.width * (this.props.end - this.props.start),
+        );
 
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(0, 200, 0)';
-        ctx.fillRect(x, 0, w, canvas.height);
+        ctx.fillStyle = 'rgb(150, 150, 150)';
+        ctx.fillRect(x, 8, w, canvas.height);
         ctx.stroke();
         ctx.closePath();
     }
 
     drawTimestamp(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-        const w = 4;
-        const x = canvas.width * this.props.current - w / 2;
-
+        const w = 2;
+        const x = Math.round(canvas.width * this.props.current) - w / 2;
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(0, 0, 0)';
+        ctx.fillStyle = 'rgba(100, 0, 0, 1.0)';
         ctx.fillRect(x, 0, w, canvas.height);
         ctx.stroke();
         ctx.closePath();
@@ -286,18 +338,37 @@ class TimelineCanvas extends React.Component<TimelineCanvasProps, any> {
                 <canvas
                     ref="canvas"
                     width={1000}
-                    height={30}
+                    height={40}
                     onClick={this.handleClick}
                 />
-                <div>
-                    <button onClick={this.handleBtnClick(Timestamp.Start)}>
+                <SControlsBox>
+                    <SButton
+                        onClick={() => this.props.setTimestamp(Timestamp.Start)}
+                    >
                         Set Start
-                    </button>
-                    <button onClick={this.handleBtnClick(Timestamp.End)}>
+                    </SButton>
+
+                    <SButton
+                        onClick={() => this.props.setTimestamp(Timestamp.End)}
+                    >
                         Set End
-                    </button>
-                </div>
+                    </SButton>
+                </SControlsBox>
             </div>
         );
     }
 }
+
+const SControlsBox = styled.div`
+    display: flex;
+`;
+
+const SButton = styled.button`
+    flex-grow: 1;
+    font-size: 16px;
+    margin-top: 10px;
+    height: 40px;
+    background-color: transparent;
+    border: 1px solid grey;
+    color: white;
+`;
