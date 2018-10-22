@@ -225,11 +225,12 @@ class VideoCut extends React.Component<VideoCutProps, VideoCutState> {
 const SInput = styled.input`
     height: 40px;
     font-size: 16px;
-    width: calc(100% - 10px);
+    width: 100%;
     padding-left: 10px;
     border: 1px solid grey;
     background-color: transparent;
     color: white;
+    box-sizing: border-box;
 `;
 
 const SViewBox = styled.div`
