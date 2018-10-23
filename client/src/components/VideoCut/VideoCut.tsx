@@ -1,26 +1,22 @@
 import * as React from 'react';
 import styled from '@styled-components';
+import Timeline from './Timeline/Timeline';
 
+export enum Timestamp {
+    Start = 'start',
+    End = 'end',
+}
 interface VideoCutProps {}
-
 interface VideoCutState {
     indices: {
-        current: number;
         start: number;
         end: number;
     };
     count: number;
     images: {
         start: string;
-        current: string;
         end: string;
     };
-}
-
-enum Timestamp {
-    Start = 'start',
-    Current = 'current',
-    End = 'end',
 }
 
 const imgSize = {
@@ -69,10 +65,7 @@ class VideoCut extends React.Component<VideoCutProps, VideoCutState> {
             Timestamp.Start,
             this.state.indices[Timestamp.Start],
         );
-        await this.updateFrames(
-            Timestamp.Current,
-            this.state.indices[Timestamp.Current],
-        );
+
         await this.updateFrames(
             Timestamp.End,
             this.state.indices[Timestamp.End],
@@ -105,26 +98,7 @@ class VideoCut extends React.Component<VideoCutProps, VideoCutState> {
         }));
     }
 
-    setCurrent = async (timestamp: number) => {
-        await this.setState(prevState => {
-            return {
-                ...prevState,
-                indices: {
-                    ...prevState.indices,
-                    current: Math.round(timestamp * (this.state.count - 1)),
-                },
-            };
-        });
-
-        console.log(this.state);
-
-        await this.updateFrames(
-            Timestamp.Current,
-            this.state.indices[Timestamp.Current],
-        );
-    };
-
-    setTimestamp = async (type: Timestamp) => {
+    setTimestamp = async (type: Timestamp, timestamp: number) => {
         if ([Timestamp.Start, Timestamp.End].indexOf(type) > -1) {
             if (
                 (type == Timestamp.Start &&
@@ -139,7 +113,9 @@ class VideoCut extends React.Component<VideoCutProps, VideoCutState> {
                         ...prevState,
                         indices: {
                             ...prevState.indices,
-                            [type]: prevState.indices.current,
+                            [type]: Math.round(
+                                timestamp * (this.state.count - 1),
+                            ),
                         },
                     };
                 });
@@ -182,19 +158,6 @@ class VideoCut extends React.Component<VideoCutProps, VideoCutState> {
                             onChange={this.handleChange(Timestamp.Start)}
                         />
                     </SImageBox>
-
-                    <SImageBox>
-                        <SImg
-                            src={`data:image/png;base64,${
-                                this.state.images[Timestamp.Current]
-                            }`}
-                        />
-                        <SInput
-                            value={this.state.indices.current}
-                            onChange={this.handleChange(Timestamp.Current)}
-                        />
-                    </SImageBox>
-
                     <SImageBox>
                         <SImg
                             src={`data:image/png;base64,${
@@ -208,13 +171,12 @@ class VideoCut extends React.Component<VideoCutProps, VideoCutState> {
                     </SImageBox>
                 </SViewBox>
 
-                <TimelineCanvas
+                <Timeline
                     start={this.state.indices.start / (this.state.count - 1)}
                     end={this.state.indices.end / (this.state.count - 1)}
                     current={
                         this.state.indices.current / (this.state.count - 1)
                     }
-                    setCurrent={this.setCurrent}
                     setTimestamp={this.setTimestamp}
                 />
             </STimelineBox>
@@ -257,119 +219,3 @@ const SImg = styled.img`
 `;
 
 export default VideoCut;
-
-interface TimelineCanvasProps {
-    start: number;
-    end: number;
-    current: number;
-    setCurrent: (timestamp: number) => void;
-    setTimestamp: (type: Timestamp) => void;
-}
-
-class TimelineCanvas extends React.Component<TimelineCanvasProps, any> {
-    componentDidMount() {
-        this.updateCanvas();
-    }
-    componentDidUpdate() {
-        this.updateCanvas();
-    }
-
-    handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-        event.persist();
-        const target = event.target;
-        if (target instanceof HTMLCanvasElement) {
-            const rect = target.getBoundingClientRect();
-            const timestamp = (event.pageX - rect.left) / rect.width;
-            this.props.setCurrent(timestamp);
-        }
-    };
-
-    drawBackground(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-        ctx.beginPath();
-        ctx.fillStyle = 'rgb(100, 100, 100)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.stroke();
-        ctx.closePath();
-    }
-
-    drawSegment(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-        const x = Math.round(canvas.width * this.props.start);
-        const w = Math.round(
-            canvas.width * (this.props.end - this.props.start),
-        );
-
-        ctx.beginPath();
-        ctx.fillStyle = 'rgb(150, 150, 150)';
-        ctx.fillRect(x, 8, w, canvas.height);
-        ctx.stroke();
-        ctx.closePath();
-    }
-
-    drawTimestamp(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-        const w = 2;
-        const x = Math.round(canvas.width * this.props.current) - w / 2;
-        ctx.beginPath();
-        ctx.fillStyle = 'rgba(100, 0, 0, 1.0)';
-        ctx.fillRect(x, 0, w, canvas.height);
-        ctx.stroke();
-        ctx.closePath();
-    }
-
-    clearCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-        ctx.beginPath();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.closePath();
-    }
-
-    async updateCanvas() {
-        if (this.refs.canvas instanceof HTMLCanvasElement) {
-            const ctx = this.refs.canvas.getContext('2d');
-            if (ctx !== null) {
-                this.clearCanvas(ctx, this.refs.canvas);
-                this.drawBackground(ctx, this.refs.canvas);
-                this.drawSegment(ctx, this.refs.canvas);
-                this.drawTimestamp(ctx, this.refs.canvas);
-            }
-        }
-    }
-
-    render() {
-        return (
-            <div>
-                <canvas
-                    ref="canvas"
-                    width={1000}
-                    height={40}
-                    onClick={this.handleClick}
-                />
-                <SControlsBox>
-                    <SButton
-                        onClick={() => this.props.setTimestamp(Timestamp.Start)}
-                    >
-                        Set Start
-                    </SButton>
-
-                    <SButton
-                        onClick={() => this.props.setTimestamp(Timestamp.End)}
-                    >
-                        Set End
-                    </SButton>
-                </SControlsBox>
-            </div>
-        );
-    }
-}
-
-const SControlsBox = styled.div`
-    display: flex;
-`;
-
-const SButton = styled.button`
-    flex-grow: 1;
-    font-size: 16px;
-    margin-top: 10px;
-    height: 40px;
-    background-color: transparent;
-    border: 1px solid grey;
-    color: white;
-`;
