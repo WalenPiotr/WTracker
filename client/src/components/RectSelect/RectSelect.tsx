@@ -4,13 +4,14 @@ import Rectangle from '@interfaces/Rectangle';
 import Canvas from './Canvas';
 
 interface RectSelectState {
-    url: string;
+    image: string;
     tracked: Rectangle;
+    current: string;
 }
 
 class RectSelect extends React.Component<any, RectSelectState> {
     state = {
-        url: '',
+        image: '',
         size: {
             x: 1280,
             y: 720,
@@ -58,26 +59,30 @@ class RectSelect extends React.Component<any, RectSelectState> {
                     max: size,
                 },
             }));
-        }
 
-        const response = await fetch(
-            'http://127.0.0.1:8080/frame/1BeTQwRs6A5fwq1OWfmsMhXR5aV',
-            {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
+            const index = 0;
+            const frameIndices: number[] = [index];
+            const response = await fetch(
+                'http://127.0.0.1:8080/frame/1BeTQwRs6A5fwq1OWfmsMhXR5aV',
+                {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        size: size,
+                        indices: frameIndices,
+                    }),
                 },
-                body: JSON.stringify({
-                    index: 0,
-                }),
-            },
-        );
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const urlCreator = window.URL;
-            this.setState({ url: urlCreator.createObjectURL(blob) });
+            );
+            if (response.ok) {
+                const parsedJSON = await response.json();
+                this.setState(prevState => ({
+                    ...prevState,
+                    image: parsedJSON.IndexToImage[index],
+                }));
+            }
         }
     }
 
@@ -142,7 +147,7 @@ class RectSelect extends React.Component<any, RectSelectState> {
             <div>
                 <Canvas
                     originalSize={this.state.size}
-                    src={this.state.url}
+                    src={`data:image/png;base64,${this.state.image}`}
                     onClick={this.handleClick}
                     tracked={this.state.tracked}
                     current={this.state.current}
