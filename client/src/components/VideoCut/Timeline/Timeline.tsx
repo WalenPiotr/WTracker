@@ -74,7 +74,7 @@ class Timeline extends React.Component<TimelineProps, any> {
         return (
             <div>
                 <Stage
-                    x={30}
+                    x={dimensions.canvas.padding}
                     width={
                         dimensions.timeline.width +
                         2 * dimensions.canvas.padding
@@ -132,7 +132,6 @@ class CutLayer extends React.Component<CutLayerProps, CutLayerState> {
     onDragEnd = (type: Timestamp) => (
         evtObj: Konva.KonvaEventObject<DragEvent>,
     ) => {
-        console.log(evtObj);
         const event = evtObj.evt;
         const target = event.target;
         if (target instanceof HTMLCanvasElement) {
@@ -181,9 +180,6 @@ class CutLayer extends React.Component<CutLayerProps, CutLayerState> {
             y: rect.y + rect.height / 2,
             radius: dimensions.anchor.radius,
         };
-
-        console.log(circle1, circle2);
-
         return (
             <Layer>
                 <Rect
