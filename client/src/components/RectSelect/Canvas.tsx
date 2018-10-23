@@ -1,212 +1,252 @@
 import * as React from 'react';
-import styled from '@styled-components';
+import * as ReactKonva from 'react-konva';
+import * as Konva from 'konva';
+
+import styled from 'styled-components';
+
+import { CornerKind } from './RectSelect';
 import Point from '@interfaces/Point';
-import Rectangle from '@interfaces/Rectangle';
+
+const canvas = {
+    width: 1280,
+    height: 720,
+};
+
+interface CanvasDimensions {
+    corner: {
+        strokeWidth: {
+            standard: number;
+            hovered: number;
+        };
+        radius: number;
+    };
+    margin: number;
+}
+
+const canvasDimensions: CanvasDimensions = {
+    corner: {
+        strokeWidth: {
+            standard: 2,
+            hovered: 4,
+        },
+        radius: 8,
+    },
+    margin: 20,
+};
+interface CanvasColors {
+    shadowRect: string;
+    rect: string;
+    anchor: {
+        fill: string;
+        stroke: string;
+    };
+}
+
+const colors: CanvasColors = {
+    shadowRect: 'rgb(150, 150, 150)',
+    rect: 'rgb(200, 200, 200)',
+    anchor: {
+        fill: 'rgb(200, 200, 200)',
+        stroke: 'rgb(150, 150, 150)',
+    },
+};
 
 interface CanvasProps {
     src: string;
-    onClick: (event: React.MouseEvent<HTMLCanvasElement>) => void;
-    originalSize: Point;
-    tracked: Rectangle;
-    current: string;
+    rect: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+    setCorner: (kind: CornerKind, point: Point) => void;
 }
 
 interface CanvasState {
-    currentPos: Point;
-    mouseEntered: boolean;
+    loaded: boolean;
+    image: HTMLImageElement;
+    hovered: {
+        [CornerKind.TopLeft]: boolean;
+        [CornerKind.BottomRight]: boolean;
+    };
 }
 
 class Canvas extends React.Component<CanvasProps, CanvasState> {
-    state = {
-        currentPos: {
-            x: 0,
-            y: 0,
+    state: CanvasState = {
+        loaded: false,
+        image: new Image(),
+        hovered: {
+            [CornerKind.TopLeft]: false,
+            [CornerKind.BottomRight]: false,
         },
-        mouseEntered: false,
     };
-    componentDidMount() {
-        this.updateCanvas();
-    }
-    componentDidUpdate() {
-        this.updateCanvas();
-    }
 
-    drawRect(
-        ctx: CanvasRenderingContext2D,
-        tracked: Rectangle,
-        originalSize: Point,
-    ) {
-        const x = Math.round((tracked.min.x * canvasSize.x) / originalSize.x);
-        const y = Math.round((tracked.min.y * canvasSize.y) / originalSize.y);
-        const w = Math.round(
-            ((tracked.max.x - tracked.min.x) * canvasSize.x) / originalSize.x,
-        );
-        const h = Math.round(
-            ((tracked.max.y - tracked.min.y) * canvasSize.y) / originalSize.y,
-        );
-
-        ctx.beginPath();
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-        ctx.fillRect(x, y, w, h);
-
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.rect(x, y, w, h);
-        ctx.stroke();
-        ctx.closePath();
-    }
-
-    //currently not used
-    drawBackground(ctx: CanvasRenderingContext2D, src: string): Promise<void> {
-        return new Promise<void>(function(resolve, reject) {
-            var background = new Image();
-            background.src = src;
-            background.onload = function() {
-                ctx.drawImage(background, 0, 0);
-                resolve();
+    loadImage = (): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            const image: HTMLImageElement = new Image();
+            image.onload = () => {
+                resolve(image);
             };
+            image.onerror = () => {
+                reject(new Error());
+            };
+            image.src = this.props.src;
         });
-    }
+    };
 
-    clearCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-    }
+    componentDidUpdate = async (prevProps: CanvasProps) => {
+        if (prevProps.src !== this.props.src) {
+            const image = await this.loadImage();
+            this.setState((prevState: CanvasState) => ({
+                ...prevState,
+                image: image,
+                loaded: true,
+            }));
+        }
+    };
 
-    drawShadowRect = (
-        ctx: CanvasRenderingContext2D,
-        tracked: Rectangle,
-        originalSize: Point,
-        current: string,
+    onDragEnd = (kind: CornerKind) => (
+        evtObj: Konva.KonvaEventObject<DragEvent>,
     ) => {
-        if (current !== '' && this.state.mouseEntered) {
-            const shadow = Object.assign({}, tracked);
-            shadow[current] = this.state.currentPos;
-            const x = Math.round(
-                (shadow.min.x * canvasSize.x) / originalSize.x,
-            );
-            const y = Math.round(
-                (shadow.min.y * canvasSize.y) / originalSize.y,
-            );
-            const w = Math.round(
-                ((shadow.max.x - shadow.min.x) * canvasSize.x) / originalSize.x,
-            );
-            const h = Math.round(
-                ((shadow.max.y - shadow.min.y) * canvasSize.y) / originalSize.y,
-            );
-
-            ctx.beginPath();
-            ctx.fillStyle = 'rgba(100, 100, 100, 0.1)';
-            ctx.fillRect(x, y, w, h);
-
-            ctx.strokeStyle = 'rgba(100, 100, 100, 0.7)';
-            ctx.lineWidth = 2;
-            ctx.rect(x, y, w, h);
-            ctx.stroke();
-
-            ctx.closePath();
-        }
-    };
-
-    handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        const event = evtObj.evt;
         const target = event.target;
-        event.persist();
         if (target instanceof HTMLCanvasElement) {
-            const bRect = target.getBoundingClientRect();
-            this.setState((prevState: CanvasState) => {
-                return {
-                    ...prevState,
-                    currentPos: {
-                        x: event.clientX - bRect.left,
-                        y: event.clientY - bRect.top,
-                    },
-                };
-            });
-        }
-    };
-
-    async updateCanvas() {
-        if (this.refs.canvas instanceof HTMLCanvasElement) {
-            const ctx = this.refs.canvas.getContext('2d');
-            if (ctx !== null) {
-                this.clearCanvas(ctx, this.refs.canvas);
-                // await this.drawBackground(ctx, this.props.src);
-                this.drawRect(ctx, this.props.tracked, this.props.originalSize);
-                this.drawShadowRect(
-                    ctx,
-                    this.props.tracked,
-                    this.props.originalSize,
-                    this.props.current,
-                );
+            const point: Point = {
+                x: evtObj.target.x() / canvas.width,
+                y: evtObj.target.y() / canvas.height,
+            };
+            if (point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1) {
+                this.props.setCorner(kind, point);
             }
         }
-    }
+    };
 
-    handleMouseEnter = () => {
+    onDragMove = (kind: CornerKind) => (
+        evtObj: Konva.KonvaEventObject<DragEvent>,
+    ) => {
+        const event = evtObj.evt;
+        const target = event.target;
+        if (target instanceof HTMLCanvasElement) {
+            const point: Point = {
+                x: evtObj.target.x() / canvas.width,
+                y: evtObj.target.y() / canvas.height,
+            };
+            if (point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1) {
+                this.props.setCorner(kind, point);
+            }
+        }
+    };
+
+    onMouseOver = (cornerKind: CornerKind) => () => {
+        console.log('aaa');
         this.setState((prevState: CanvasState) => ({
             ...prevState,
-            mouseEntered: true,
+            hovered: {
+                ...prevState.hovered,
+                [cornerKind]: true,
+            },
         }));
     };
 
-    handleMouseLeave = () => {
+    onMouseOut = (cornerKind: CornerKind) => () => {
         this.setState((prevState: CanvasState) => ({
             ...prevState,
-            mouseEntered: false,
+            hovered: {
+                ...prevState.hovered,
+                [cornerKind]: false,
+            },
         }));
     };
 
     render() {
+        const backgroundRect = this.state.loaded ? (
+            <ReactKonva.Image
+                height={canvas.height}
+                width={canvas.width}
+                image={this.state.image}
+                fillEnabled={true}
+            />
+        ) : (
+            <ReactKonva.Rect
+                height={canvas.height}
+                width={canvas.width}
+                fill={'black'}
+            />
+        );
+
         return (
-            <SDiv size={canvasSize}>
-                <SCanvas
-                    ref="canvas"
-                    onClick={this.props.onClick}
-                    width={canvasSize.x}
-                    height={canvasSize.y}
-                    size={canvasSize}
-                    onMouseMove={this.handleMouseMove}
-                    onMouseEnter={this.handleMouseEnter}
-                    onMouseLeave={this.handleMouseLeave}
-                />
-                <SImg src={this.props.src} size={canvasSize} />
+            <SDiv>
+                <ReactKonva.Stage
+                    x={canvasDimensions.margin}
+                    y={canvasDimensions.margin}
+                    height={canvas.height + 2 * canvasDimensions.margin}
+                    width={canvas.width + 2 * canvasDimensions.margin}
+                >
+                    <ReactKonva.Layer>{backgroundRect}</ReactKonva.Layer>
+                    <ReactKonva.Layer>
+                        <ReactKonva.Rect
+                            x={this.props.rect.x * canvas.width}
+                            y={this.props.rect.y * canvas.height}
+                            width={this.props.rect.width * canvas.width}
+                            height={this.props.rect.height * canvas.height}
+                            stroke={colors.rect}
+                        />
+                        <ReactKonva.Circle
+                            x={this.props.rect.x * canvas.width}
+                            y={this.props.rect.y * canvas.height}
+                            radius={canvasDimensions.corner.radius}
+                            fill={colors.anchor.fill}
+                            stroke={colors.anchor.stroke}
+                            strokeWidth={
+                                this.state.hovered[CornerKind.TopLeft]
+                                    ? canvasDimensions.corner.strokeWidth
+                                          .hovered
+                                    : canvasDimensions.corner.strokeWidth
+                                          .standard
+                            }
+                            onDragEnd={this.onDragEnd(CornerKind.TopLeft)}
+                            onDragMove={this.onDragMove(CornerKind.TopLeft)}
+                            draggable
+                            onMouseOver={this.onMouseOver(CornerKind.TopLeft)}
+                            onMouseOut={this.onMouseOut(CornerKind.TopLeft)}
+                        />
+                        <ReactKonva.Circle
+                            x={
+                                (this.props.rect.x + this.props.rect.width) *
+                                canvas.width
+                            }
+                            y={
+                                (this.props.rect.y + this.props.rect.height) *
+                                canvas.height
+                            }
+                            radius={canvasDimensions.corner.radius}
+                            strokeWidth={
+                                this.state.hovered[CornerKind.BottomRight]
+                                    ? canvasDimensions.corner.strokeWidth
+                                          .hovered
+                                    : canvasDimensions.corner.strokeWidth
+                                          .standard
+                            }
+                            fill={colors.anchor.fill}
+                            stroke={colors.anchor.stroke}
+                            onDragEnd={this.onDragEnd(CornerKind.BottomRight)}
+                            onDragMove={this.onDragMove(CornerKind.BottomRight)}
+                            draggable
+                            onMouseOver={this.onMouseOver(
+                                CornerKind.BottomRight,
+                            )}
+                            onMouseOut={this.onMouseOut(CornerKind.BottomRight)}
+                        />
+                    </ReactKonva.Layer>
+                </ReactKonva.Stage>
             </SDiv>
         );
     }
 }
 
-const canvasSize = {
-    x: 1280,
-    y: 720,
-};
-
-const SCanvas = styled.canvas`
-    position: absolute;
-    z-index: 2;
-    user-select: none;
-    width: ${({ size }: SImgProps) => `${size.x}px`};
-    height: ${({ size }: SImgProps) => `${size.y}px`};
-`;
-
-interface SImgProps {
-    size: Point;
-}
-
-const SImg = styled.img`
-    width: ${({ size }: SImgProps) => `${size.x}px`};
-    height: ${({ size }: SImgProps) => `${size.y}px`};
-
-    position: absolute;
-    z-index: 1;
-    user-select: none;
-`;
-const SDiv = styled.div`
-    width: ${({ size }: SImgProps) => `${size.x}px`};
-    height: ${({ size }: SImgProps) => `${size.y}px`};
-
-    position: relative;
-    margin: 10px auto;
-    user-select: none;
-`;
-
 export default Canvas;
+
+const SDiv = styled.div`
+    display: flex;
+    justify-content: center;
+`;

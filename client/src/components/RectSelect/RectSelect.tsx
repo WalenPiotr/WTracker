@@ -2,11 +2,16 @@ import * as React from 'react';
 import styled from '@styled-components';
 import Rectangle from '@interfaces/Rectangle';
 import Canvas from './Canvas';
-
+import Point from '@interfaces/Point';
 interface RectSelectState {
     image: string;
     tracked: Rectangle;
-    current: string;
+    size: Point;
+}
+
+export enum CornerKind {
+    TopLeft = 'min',
+    BottomRight = 'max',
 }
 
 class RectSelect extends React.Component<any, RectSelectState> {
@@ -26,10 +31,9 @@ class RectSelect extends React.Component<any, RectSelectState> {
                 y: 720,
             },
         },
-        current: '',
     };
 
-    async componentDidMount() {
+    componentDidMount = async () => {
         const metaResponse = await fetch(
             'http://127.0.0.1:8080/meta/1BeTQwRs6A5fwq1OWfmsMhXR5aV',
             {
@@ -53,10 +57,13 @@ class RectSelect extends React.Component<any, RectSelectState> {
                 size: size,
                 tracked: {
                     min: {
-                        x: 0,
-                        y: 0,
+                        x: 0.1 * size.x,
+                        y: 0.1 * size.y,
                     },
-                    max: size,
+                    max: {
+                        x: 0.9 * size.x,
+                        y: 0.9 * size.y,
+                    },
                 },
             }));
 
@@ -84,43 +91,18 @@ class RectSelect extends React.Component<any, RectSelectState> {
                 }));
             }
         }
-    }
-
-    handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-        if (event.target instanceof HTMLCanvasElement) {
-            const x0 = event.target.getBoundingClientRect().left;
-            const y0 = event.target.getBoundingClientRect().top;
-            const x1 = event.target.getBoundingClientRect().right;
-            const y1 = event.target.getBoundingClientRect().bottom;
-
-            const val = {
-                x: Math.round(
-                    ((event.clientX - x0) * this.state.size.x) / (x1 - x0),
-                ),
-                y: Math.round(
-                    ((event.clientY - y0) * this.state.size.y) / (y1 - y0),
-                ),
-            };
-
-            this.setState((prevState: RectSelectState) => ({
-                ...prevState,
-                tracked: {
-                    ...prevState.tracked,
-                    [this.state.current]: val,
-                },
-                current: '',
-            }));
-        }
     };
 
-    btnClick = (field: string) => () => {
-        if (this.state.current === field) {
-            field = '';
-        }
-
+    setCorner = (kind: CornerKind, point: Point) => {
         this.setState((prevState: RectSelectState) => ({
             ...prevState,
-            current: field,
+            tracked: {
+                ...prevState.tracked,
+                [kind]: {
+                    x: Math.round(point.x * prevState.size.x),
+                    y: Math.round(point.y * prevState.size.y),
+                },
+            },
         }));
     };
 
@@ -142,24 +124,26 @@ class RectSelect extends React.Component<any, RectSelectState> {
         }
     };
 
-    render() {
+    render = () => {
+        const rect = {
+            x: this.state.tracked.min.x / this.state.size.x,
+            y: this.state.tracked.min.y / this.state.size.y,
+            width:
+                (this.state.tracked.max.x - this.state.tracked.min.x) /
+                this.state.size.x,
+            height:
+                (this.state.tracked.max.y - this.state.tracked.min.y) /
+                this.state.size.y,
+        };
         return (
             <div>
                 <Canvas
-                    originalSize={this.state.size}
                     src={`data:image/png;base64,${this.state.image}`}
-                    onClick={this.handleClick}
-                    tracked={this.state.tracked}
-                    current={this.state.current}
+                    rect={rect}
+                    setCorner={this.setCorner}
                 />
                 <SControls>
                     <SPointBox>
-                        <SButton
-                            onClick={this.btnClick('min')}
-                            highlight={this.state.current === 'min'}
-                        >
-                            1st Point
-                        </SButton>
                         <div>
                             <SLabel>x = </SLabel>
                             <SInput
@@ -176,12 +160,6 @@ class RectSelect extends React.Component<any, RectSelectState> {
                         </div>
                     </SPointBox>
                     <SPointBox>
-                        <SButton
-                            onClick={this.btnClick('max')}
-                            highlight={this.state.current === 'max'}
-                        >
-                            2nd Point
-                        </SButton>
                         <div>
                             <SLabel>x = </SLabel>
                             <SInput
@@ -200,7 +178,7 @@ class RectSelect extends React.Component<any, RectSelectState> {
                 </SControls>
             </div>
         );
-    }
+    };
 }
 
 const SPointBox = styled.div`
@@ -220,12 +198,6 @@ const SInput = styled.input``;
 
 const SLabel = styled.label`
     margin: 10px;
-`;
-
-const SButton = styled.button`
-    background-color: ${({ highlight }: { highlight: boolean }) =>
-        highlight ? 'green' : 'transparent'};
-    margin-bottom: 5px;
 `;
 
 export default RectSelect;
