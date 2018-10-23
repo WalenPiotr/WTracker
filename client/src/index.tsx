@@ -5,6 +5,7 @@ import registerServiceWorker from './registerServiceWorker';
 import VideoCut from '@components/VideoCut/VideoCut';
 
 import { createGlobalStyle } from 'styled-components';
+import RectSelect from '@components/RectSelect/RectSelect';
 
 const GlobalStyle = createGlobalStyle`
     body {
@@ -15,6 +16,9 @@ const GlobalStyle = createGlobalStyle`
 ReactDOM.render(
     <div>
         <VideoCut />
+        <hr />
+        <RectSelect />
+        <hr />
         <GlobalStyle />
     </div>,
     document.getElementById('root'),
