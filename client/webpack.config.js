@@ -20,6 +20,9 @@ module.exports = {
             ),
             '@interfaces': path.resolve(__dirname, 'src/interfaces/'),
             '@components': path.resolve(__dirname, 'src/components/'),
+            '@reducers': path.resolve(__dirname, 'src/reducers/'),
+            '@actions': path.resolve(__dirname, 'src/actions/'),
+            '@helpers': path.resolve(__dirname, 'src/helpers/'),
         },
     },
     module: {

@@ -10,7 +10,11 @@
         "paths": {
             "@styled-components": ["src/styled-components"],
             "@interfaces/*": ["src/interfaces/*"],
-            "@components/*": ["src/components/*"]
+            "@components/*": ["src/components/*"],
+            "@reducers/*": ["src/reducers/*"],
+            "@actions/*": ["src/actions/*"],
+            "@helpers/*": ["src/helpers/*"]
+
         },
         "downlevelIteration": true,
         "forceConsistentCasingInFileNames": true,
@@ -19,7 +23,6 @@
         "noImplicitAny": true,
         "strictNullChecks": true,
         "suppressImplicitAnyIndexErrors": true,
-        "noUnusedLocals": true
     },
     "include": ["./src/**/*"]
 }
